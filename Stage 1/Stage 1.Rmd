@@ -1,0 +1,67 @@
+---
+title: "HackBio Stage 1 Assignment"
+author: "Neil Marc Sordilla"
+date: "2026-01-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Task 1
+```{r}
+GC_calculator <- function(input_gene){
+  input_gene <- strsplit(x = input_gene, split = "")[[1]]
+  
+  gc_counter <- 0
+  for (nuc in input_gene){
+    if (nuc == 'G' | nuc == 'C' | nuc == 'g' | nuc == 'c'){
+      gc_counter <- gc_counter + 1
+    }
+  }
+  return((gc_counter / length(input_gene)) * 100)
+}
+
+
+final_GC <- GC_calculator(input_gene = 'gcaTTTAT')
+final_GC
+
+
+```
+
+
+# Task 2
+```{r}
+
+amino_acid <- c('Alanine', 'Arginine', 'Asparagine', 'Aspartic Acid', 'Cysteine', 'Glutamic Acid', 'Glutamine', 'Glycine', 'Histidine', 'Isoleucine', 'Leucine', 'Lysine', 'Methionine', 'Phenylalanine', 'Proline', 'Serine', 'Threonine', 'Tryptophan', 'Tyrosine', 'Valine')
+
+ltr_3 <- c('Ala', 'Arg', 'Asn', 'Asp', 'Cys', 'Glu', 'Gln', 'Gly', 'His', 'Ile', 'Leu', 'Lys', 'Met', 'Phe', 'Pro', 'Ser', 'Thr', 'Trp', 'Tyr', 'Val')
+
+ltr_1 <- c('A', 'R', 'N', 'D', 'C', 'E', 'Q', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V')
+
+wt <- c(89.09, 174.2, 132.12, 133.1, 121.15, 147.13, 146.15, 75.07, 155.16, 131.18, 131.18, 146.19, 149.21, 165.19, 115.13, 105.09, 119.12, 204.23, 181.19, 117.15)
+
+amino_acid_df <- data.frame(amino_acid, ltr_3, ltr_1, wt)
+
+
+MolecularWeight <- function(input_protein){
+  input_protein <- toupper(input_protein)
+  weight <- 0
+  protein <- strsplit(x = input_protein, split = "")[[1]]
+  for (amino in protein){
+    if (amino %in% amino_acid_df$ltr_1){
+      weight <- weight + amino_acid_df$wt[which(amino_acid_df$ltr_1 == amino)]
+    }
+  }
+  return(weight/1000)
+}
+
+MolecularWeight(input_protein = 'NEILMARC')
+
+```
+
+
+
+
