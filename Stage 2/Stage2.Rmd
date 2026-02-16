@@ -1,0 +1,427 @@
+
+#Stage 2
+
+#Part 1 - Gene Expression Analysis
+
+#1a Heatmap
+
+pheatmap(mat = gene_exp_norm[, 2:7],
+         border_color = 'black',
+         legend = T,
+         labels_row = gene_exp_norm$X,
+         fontsize_row = 9,
+         cluster_rows = T,
+         cluster_cols = T,
+         color = colorRampPalette(c("lightblue", "blue", "darkblue"))(100)
+)
+
+
+#2b Volcano Plot
+
+# Map colors from significance column
+cols <- ifelse(
+  gene_exp_diff$significance == "up", "green",
+  ifelse(gene_exp_diff$significance == "down", "orange", "grey")
+)
+
+# Volcano plot
+plot(
+  x = gene_exp_diff$log2FoldChange,
+  y = gene_exp_diff$X.log10PAdj,
+  col = cols,
+  pch = 16,
+  cex = 0.7,
+  xlab = "log2(Fold Change)",
+  ylab = expression(-log[10](PAdj)),
+  main = "Volcano plot",
+  abline(v = c(-1, 1), lty = 2)
+)
+
+legend(
+  "topright",
+  legend = c("Upregulated", "Downregulated", "Not significant"),
+  col = c("green", "orange", "grey"),
+  pch = 16,
+  bty = "n"
+)
+
+
+#Part 2 - Breast Cancer Data Exploration
+
+#1c - Scatter plot (radius vs texture)
+
+# Define colors by diagnosis
+cols <- ifelse(
+  breast_cancer$diagnosis == "M", "red", "blue"
+)
+
+# Scatter plot
+plot(
+  x = breast_cancer$texture_mean,
+  y = breast_cancer$radius_mean,
+  col = cols,
+  pch = 16,
+  cex = 0.8,
+  xlab = "Texture (mean)",
+  ylab = "Radius (mean)",
+  main = "Radius vs Texture (Breast Cancer)"
+)
+
+# Legend
+legend(
+  "topleft",
+  legend = c("Malignant (M)", "Benign (B)"),
+  col = c("red", "blue"),
+  pch = 16,
+  bty = "n"
+)
+
+
+#1d Correlation Heatmap
+
+# Select key features
+features <- breast_cancer[, c(
+  "radius_mean",
+  "texture_mean",
+  "perimeter_mean",
+  "area_mean",
+  "smoothness_mean",
+  "compactness_mean"
+)]
+
+# Correlation matrix
+cor_mat <- cor(features, use = "complete.obs", method = "pearson")
+
+
+pheatmap(
+  cor_mat,
+  color = colorRampPalette(c("blue", "white", "red"))(100),
+  display_numbers = TRUE,        # annotate correlations
+  number_format = "%.2f",        # 2 decimal places
+  cluster_rows = TRUE,
+  cluster_cols = TRUE,
+  border_color = "black",
+  main = "Correlation Heatmap of Key Breast Cancer Features"
+)
+
+#1e Scatter pllot (smoothness vs compactness)
+
+# Colors by diagnosis
+cols <- ifelse(
+  breast_cancer$diagnosis == "M", "red", "blue"
+)
+
+# Scatter plot
+plot(
+  x = breast_cancer$smoothness_mean,
+  y = breast_cancer$compactness_mean,
+  col = cols,
+  pch = 16,
+  cex = 0.8,
+  xlab = "Compactness (mean)",
+  ylab = "Smoothness (mean)",
+  main = "Smoothness vs Compactness"
+)
+
+# Gridlines
+grid(col = "grey80", lty = "dotted")
+
+# Legend
+legend(
+  "topright",
+  legend = c("Malignant (M)", "Benign (B)"),
+  col = c("red", "blue"),
+  pch = 16,
+  bty = "n"
+)
+
+
+
+#1f Density Plot (area distribution)
+
+library(ggplot2)
+library(scales)
+
+ggplot(breast_cancer, aes(x = area_mean, fill = diagnosis, color = diagnosis)) +
+  geom_density(alpha = 0.35, size = 1.1, adjust = 1) +
+  scale_fill_manual(
+    values = c("M" = "red", "B" = "blue"),
+    labels = c("M" = "Malignant", "B" = "Benign"),
+    name = "Diagnosis"
+  ) +
+  scale_color_manual(
+    values = c("M" = "red", "B" = "blue"),
+    labels = c("M" = "Malignant", "B" = "Benign"),
+    name = "Diagnosis"
+  ) +
+  scale_y_continuous(
+    limits = c(0, 0.003),
+    labels = label_number(accuracy = 0.00025)
+  ) +
+  labs(
+    x = "Area (mean)",
+    y = "Density",
+    title = "Density of Mean Area by Diagnosis"
+  ) +
+  theme_classic()
+
+
+
+#Part 3
+
+# install.packages(c("patchwork", "pheatmap", "ggraph", "tidygraph", "grid", "gridExtra"))
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(pheatmap)
+library(patchwork)
+library(grid)
+library(ggraph)
+library(tidygraph)
+
+#Panel 2a
+df_a <- read_excel("D:/HackBio/hb_stage_2.xlsx", sheet = "a")
+df_a$new_ratio <- as.numeric(df_a$new_ratio)
+df_a$cell_type <- as.factor(df_a$cell_type)
+
+cell_types <- levels(df_a$cell_type)
+
+fill_cols <- setNames(
+  sapply(hb_pal[1:length(cell_types)], transparent_color, percent = 30),
+  cell_types
+)
+
+p2a <- ggplot(df_a, aes(x = cell_type, y = new_ratio, fill = cell_type)) +
+  geom_boxplot(width = 0.7, color = "black", outlier.shape = 1, outlier.size = 2, outlier.stroke = 0.7) +
+  scale_fill_manual(values = fill_cols, guide = "none") +
+  coord_cartesian(ylim = c(0, 0.5), clip = "off") +
+  labs(x = NULL, y = "Ratio") +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+    plot.margin = margin(6, 6, 6, 6)
+  )
+
+
+#Panel 2b
+df_b <- read_excel("D:/HackBio/hb_stage_2.xlsx", sheet = "b")
+gene_col <- "cell"
+
+df_b$log2_half_life <- log2(df_b$half_life)
+df_b$log2_alpha     <- log2(df_b$alpha)
+
+hl_cut    <- 2.7
+alpha_cut <- -3.5
+
+df_b$regime <- "Other"
+df_b$regime[df_b$log2_half_life <  hl_cut & df_b$log2_alpha > alpha_cut] <- "Green"
+df_b$regime[df_b$log2_half_life >= hl_cut & df_b$log2_alpha <= alpha_cut] <- "Blue"
+
+label_df <- df_b[df_b[[gene_col]] %in% c("Camp", "Ccr2"), ]
+
+p2b <- ggplot(df_b, aes(x = log2_half_life, y = log2_alpha, color = regime)) +
+  geom_point(size = 1.2, alpha = 0.9) +
+  geom_vline(xintercept = hl_cut, linetype = "dashed", color = "black") +
+  geom_hline(yintercept = alpha_cut, linetype = "dashed", color = "black") +
+  geom_text(
+    data = label_df,
+    aes(label = .data[[gene_col]]),
+    color = "black",
+    size = 4,
+    vjust = -0.8
+  ) +
+  scale_color_manual(values = c("Green" = "green3", "Blue" = "royalblue3", "Other" = "grey50"), guide = "none") +
+  labs(x = "log2(Half Life)", y = "log2(Alpha Life)") +
+  theme_classic() +
+  theme(plot.margin = margin(6, 6, 6, 6))
+
+
+#Panel 2c
+df_c <- read_excel("D:/HackBio/hb_stage_2.xlsx", sheet = "c")
+gene_names <- df_c$genes
+mat_c <- as.matrix(df_c[, -1]); mode(mat_c) <- "numeric"; rownames(mat_c) <- gene_names
+
+cn <- colnames(mat_c)
+Time <- sub(".*(\\d{2}h)$", "\\1", cn)
+CellType_raw <- sub("(\\d{2}h)$", "", cn)
+CellType <- sub("n$", "", CellType_raw)
+
+ann_col <- data.frame(CellType = CellType, Time = Time)
+rownames(ann_col) <- cn
+
+cell_types_c <- unique(ann_col$CellType)
+times_c <- unique(ann_col$Time)
+
+cell_cols <- setNames(hb_pal[1:length(cell_types_c)], cell_types_c)
+time_cols <- setNames(hb_pal[(length(cell_types_c)+1):(length(cell_types_c)+length(times_c))], times_c)
+
+ann_colors <- list(CellType = cell_cols, Time = time_cols)
+
+hm2c <- pheatmap(
+  mat_c,
+  cluster_rows = TRUE,
+  cluster_cols = FALSE,
+  annotation_col = ann_col,
+  annotation_colors = ann_colors,
+  show_colnames = FALSE,
+  show_rownames = FALSE,
+  border_color = NA,
+  color = colorRampPalette(c("white", "#c6dbef", "#2171b5", "#08306b"))(100),
+  silent = TRUE
+)
+
+p2c <- wrap_elements(hm2c$gtable)
+
+
+#Panel 2d
+df_d1 <- read_excel("D:/HackBio/hb_stage_2.xlsx", sheet = "d_1") %>% as.data.frame()
+
+rownames(df_d1) <- df_d1$pathway
+
+mat_d <- df_d1[, setdiff(names(df_d1), "pathway"), drop = FALSE]
+mat_d[] <- lapply(mat_d, function(x) as.numeric(as.character(x)))
+mat_d <- as.matrix(mat_d)
+
+mat_d <- mat_d[, c("n00h","n02h","n06h","n12h","n24h","n48h","n72h")]
+colnames(mat_d) <- c("00h","02h","06h","12h","24h","48h","72h")
+
+neg_min <- -1.5
+pos_max <-  2.0
+
+cols_d <- c(
+  colorRampPalette(c("#d73027", "white"))(50),
+  colorRampPalette(c("white", "#4575b4"))(50)
+)
+breaks_d <- c(seq(neg_min, 0, length.out = 51),
+              seq(0, pos_max, length.out = 51)[-1])
+
+hm2d <- pheatmap(
+  mat_d,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  color = cols_d,
+  breaks = breaks_d,
+  border_color = "grey70",
+  angle_col = 90,
+  fontsize_row = 7,     
+  fontsize_col = 8,
+  legend = TRUE,
+  silent = TRUE
+)
+
+p2d <- wrap_elements(hm2d$gtable)
+
+
+#Panel 2e
+df_e <- read_excel("D:/HackBio/hb_stage_2.xlsx", sheet = "e")
+df_e$stage <- factor(df_e$stage, levels = c("72h", "6h"))
+
+stage_cols <- c("72h" = "#66bd63", "6h" = "#2b6cb0")  
+
+p2e <- ggplot(df_e, aes(x = half_life, y = alpha, color = stage, size = count)) +
+  geom_point(alpha = 0.9) +
+  scale_color_manual(values = stage_cols, name = NULL) +
+  scale_size_continuous(range = c(2, 12), breaks = c(10, 20, 30), name = NULL) +
+  labs(x = "Half Life", y = "Alpha Life") +
+  theme_classic() +
+  theme(
+    legend.position = "right",
+    legend.box = "vertical",
+    plot.margin = margin(6, 6, 6, 6)
+  ) +
+  guides(
+    color = guide_legend(order = 1, override.aes = list(size = 4)),
+    size  = guide_legend(order = 2)
+  )
+
+
+#Panel 2f
+df_f <- read_excel("D:/HackBio/hb_stage_2.xlsx", sheet = "f")
+
+df_sub <- df_f %>%
+  filter(stage %in% c("s00h", "s72h")) %>%
+  mutate(
+    stage = factor(stage, levels = c("s00h", "s72h")),
+    cell_type = factor(cell_type, levels = c("B", "Plasma"))
+  )
+
+fill_f <- c("Plasma" = "#4C6A91", "B" = "#E5A3B3")
+
+p2f <- ggplot(df_sub, aes(x = stage, y = proportion, fill = cell_type)) +
+  geom_col(width = 0.75, color = "black") +
+  scale_fill_manual(values = fill_f, name = NULL) +
+  scale_y_continuous(limits = c(0, 0.3), breaks = seq(0, 0.3, 0.05), expand = c(0, 0)) +
+  labs(x = NULL, y = NULL) +
+  theme_classic() +
+  theme(
+    legend.background = element_rect(fill = "white", color = "black"),
+    legend.key = element_rect(fill = "white"),
+    plot.margin = margin(6, 6, 6, 6)
+  )
+
+
+#Panel 2g
+df_g <- read_excel("D:/HackBio/hb_stage_2.xlsx", sheet = "g") %>% as.data.frame()
+rownames(df_g) <- df_g[[1]]
+df_g <- df_g[, -1, drop = FALSE]
+adj <- as.matrix(df_g); mode(adj) <- "numeric"
+
+cells <- c("CD4+ T","CD8+ T","Naive B","GC B","Plasma","Macrophage","DC")
+adj <- adj[cells, cells]
+
+ig <- igraph::graph_from_adjacency_matrix(adj, mode = "directed", weighted = TRUE, diag = FALSE)
+
+thr <- quantile(E(ig)$weight, 0.10)
+ig <- delete_edges(ig, E(ig)[weight < thr])
+
+w <- E(ig)$weight
+w_scaled <- (w - min(w)) / (max(w) - min(w))
+
+p2g <- ggraph(ig, layout = "kk") +
+  geom_edge_fan(
+    aes(width = w_scaled),
+    color = "grey60",
+    arrow = arrow(length = unit(3, "mm"), type = "closed"),
+    end_cap = circle(4, "mm"),
+    alpha = 0.9
+  ) +
+  scale_edge_width(range = c(0.4, 2.2), guide = "none") +
+  geom_node_point(size = 6, color = "pink", stroke = 0.6) +
+  geom_node_text(aes(label = name), color = "navy", size = 5, vjust = 0.5) +
+  theme_void() +
+  theme(plot.margin = margin(6, 6, 6, 6))
+
+
+#Assembly
+
+library(patchwork)
+library(grid)
+
+layout_design <- 
+  "ABDE
+  CFGG
+"
+
+final_fig <-
+  (p2a + p2b + p2d + p2e + p2c + p2f + p2g) +
+  plot_layout(
+    design = layout_design,
+    widths = c(1.15, 0.65, 1.35, 1.05),
+    heights = c(0.5)
+  ) &
+  theme(plot.margin = margin(10, 18, 10, 10))
+
+final_fig
+
+
+
+
+
+
+
+
+
+
+
+
+
